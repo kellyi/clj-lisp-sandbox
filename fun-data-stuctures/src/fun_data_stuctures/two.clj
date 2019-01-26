@@ -32,16 +32,57 @@
 
 (suffixes '(1 2 3 4))
 
-(spec/def ::bs-tree-node
-  (spec/keys :req-un [::value int?
-                      ::right (or nil? ::bs-tree-node)
-                      ::left (or nil? ::bs-tree-node)]))
+(spec/def ::value int?)
+(spec/def ::bs-tree-node?
+  (spec/nilable
+   (spec/keys :req-un [::value
+                       ::right (or nil? ::bs-tree-node?)
+                       ::left (or nil? ::bs-tree-node?)])))
 
 (defn create-bs-tree-node
   [value left right]
-  {:post [(spec/valid? ::bs-tree-node %)]}
+  {:pre [(spec/valid? ::value value)
+         (spec/valid? ::bs-tree-node? left)
+         (spec/valid? ::bs-tree-node? right)]
+   :post [(spec/valid? ::bs-tree-node? %)]}
   {:value value
    :left left
    :right right})
 
-(create-bs-tree-node 1 (create-bs-tree-node 2 nil nil) nil)
+(defn bs-tree-member?
+  [value node]
+  {:pre [(spec/valid? ::value value)
+         (spec/valid? ::bs-tree-node? node)]}
+  (cond
+    (nil? node) false
+    (< value (:value node)) (recur value (:left node))
+    (> value (:value node)) (recur value (:right node))
+    :else true))
+
+(def single-node (create-bs-tree-node 20 nil nil))
+(bs-tree-member? 0 single-node)
+(bs-tree-member? 1 single-node)
+(bs-tree-member? 2 single-node)
+
+(defn bs-tree-insert
+  [value node]
+  {:pre [(spec/valid? ::value value)
+         (spec/valid? ::bs-tree-node? node)]}
+  (cond
+    (nil? node) (create-bs-tree-node value nil nil)
+    (< value (:value node)) (create-bs-tree-node (:value node)
+                                                 (bs-tree-insert value (:left node))
+                                                 (:right node))
+    (> value (:value node)) (create-bs-tree-node (:value node)
+                                                 (:left node)
+                                                 (bs-tree-insert value (:right node)))
+    :else node))
+
+(as-> single-node tree
+  (bs-tree-insert -2 tree)
+  (bs-tree-insert 10 tree)
+  (bs-tree-insert 5 tree)
+  (bs-tree-insert 1000 tree)
+  (bs-tree-insert 50 tree)
+  (bs-tree-insert -50 tree)
+  (bs-tree-insert 10 tree))
