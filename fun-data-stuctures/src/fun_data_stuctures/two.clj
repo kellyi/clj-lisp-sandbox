@@ -2,6 +2,7 @@
   (:require [clojure.spec.alpha :as spec]))
 
 (defn ++
+  "Concatenate two lists into a new list"
   [[x & xs] ys]
   (cond
     (nil? x) ys
@@ -10,6 +11,7 @@
 (++ '(1 2 3) '(4 5 6))
 
 (defn fun-update
+  "Create a new list which replaces the value at index i with y"
   [[x & xs] i y]
   (cond
     (nil? x) nil
@@ -24,6 +26,7 @@
 ;; of all the suffixes of `xs` in decreasing order of length.
 
 (defn suffixes
+  "Return a list of all suffixes of a list in decreasing length order"
   ([xs] (suffixes xs []))
   ([xs accumulator]
    (cond
@@ -40,6 +43,7 @@
                        ::left (or nil? ::bs-tree-node?)])))
 
 (defn create-bs-tree-node
+  "Create a new binary search tree node"
   [value left right]
   {:pre [(spec/valid? ::value value)
          (spec/valid? ::bs-tree-node? left)
@@ -50,6 +54,7 @@
    :right right})
 
 (defn bs-tree-member?
+  "Check whether a value is a member of the set stored in a binary search tree"
   [value node]
   {:pre [(spec/valid? ::value value)
          (spec/valid? ::bs-tree-node? node)]}
@@ -65,6 +70,7 @@
 (bs-tree-member? 2 single-node)
 
 (defn bs-tree-insert
+  "Create a new node to store the given value in a binary search tree"
   [value node]
   {:pre [(spec/valid? ::value value)
          (spec/valid? ::bs-tree-node? node)]}
