@@ -239,3 +239,18 @@
                (add-or-update-bs-tree-map-entry 4 16 tree)))
 
 (get-bs-tree-value-for-key 7 (add-or-update-bs-tree-map-entry 7 100 squares))
+
+(defn count-bs-map-tree-entries
+  "Count the number of entries in a map tree"
+  ([tree] (count-bs-map-tree-entries tree 0))
+  ([tree acc]
+   {:pre [(spec/valid? ::bs-tree-map-node? tree)]
+    :post [(spec/valid? nat-int? %)]}
+   (cond
+     (nil? tree) acc
+     :else (+ 1
+              acc
+              (count-bs-map-tree-entries (:left tree))
+              (count-bs-map-tree-entries (:right tree))))))
+
+(count-bs-map-tree-entries squares)
