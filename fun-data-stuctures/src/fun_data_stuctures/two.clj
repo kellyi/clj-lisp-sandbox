@@ -101,40 +101,8 @@
                   (bs-tree-insert 10 tree)))
 
 ;; 2.2 adjust tree-member? function to defer equality check until the end
-(defn has-right-node?
-  "Check whether a binary search tree node has a right node"
-  [node]
-  {:pre [(spec/valid? ::bs-tree-node? node)]}
-  (cond
-    (nil? (:right node)) false
-    :else true))
 
-(defn has-left-node?
-  "Check whether a binary search tree node has a left node"
-  [node]
-  {:pre [(spec/valid? ::bs-tree-node? node)]}
-  (cond
-    (nil? (:left node)) false
-    :else true))
-
-(defn is-leaf-node?
-  "Check whether a binary search tree node is a leaf node"
-  [node]
-  {:pre [(spec/valid? ::bs-tree-node? node)]}
-  (and (-> node has-left-node? not)
-       (-> node has-right-node? not)))
-
-;; (defn defer-bs-tree-member?
-;;   "check whether a value is a member of the set stored in a binary search tree"
-;;   [value node]
-;;   {:pre [(spec/valid? ::value value)
-;;          (spec/valid? ::bs-tree-node? node)]}
-;;   (cond
-;;     (< value (:value node)) (recur value (:left node))
-;;     :else (recur value (:right node))))
-
-(is-leaf-node? single-node)
-(is-leaf-node? multi-node)
+;; ...
 
 ;; 2.3 Rewrite insert using execptions to avoid copying
 
