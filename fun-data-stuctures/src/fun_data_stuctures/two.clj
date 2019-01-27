@@ -1,5 +1,6 @@
 (ns fun-data-stuctures.two
-  (:require [clojure.spec.alpha :as spec]))
+  (:require [clojure.spec.alpha :as spec]
+            [clojure.spec.gen.alpha :as gen]))
 
 (defn ++
   "Concatenate two lists into a new list"
@@ -41,6 +42,12 @@
    (spec/keys :req-un [::value
                        ::right (or nil? ::bs-tree-node?)
                        ::left (or nil? ::bs-tree-node?)])))
+
+(spec/fdef create-bs-tree-node
+  :args (spec/cat :value ::value
+                  :left ::bs-tree-node?
+                  :right ::bs-tree-node?)
+  :ret ::bs-tree-node?)
 
 (defn create-bs-tree-node
   "Create a new binary search tree node"
@@ -138,14 +145,14 @@
 
 ;; ...
 
-;; 2.5 Write a function `complete` where `(complete x d)` creates a complete tree of
+;; 2.5 (A) Write a function `complete` where `(complete x d)` creates a complete tree of
 ;; depth d with x stored in every node
 
 (defn create-complete-tree
   "Create a complete tree of depth d with value x stored at each node"
   [x d]
   {:pre [(spec/valid? int? x)
-         (spec/valid? int? x)]
+         (spec/valid? nat-int? d)]
    :post [(spec/valid? ::bs-tree-node? %)]}
   (cond
    (zero? d) (create-bs-tree-node x nil nil)
@@ -153,4 +160,82 @@
                               (create-complete-tree x (dec d))
                               (create-complete-tree x (dec d)))))
 
-(create-complete-tree 10 5)
+(create-complete-tree 2 10)
+
+;; 2.5 (B)
+
+;; ...
+
+;; 2.6 Implement maps using a binary search tree
+
+(spec/def ::key int?)
+(spec/def ::bs-tree-map-node?
+  (spec/nilable
+   (spec/keys :req-un [::key
+                       ::value
+                       ::right (or nil? ::bs-tree-map-node?)
+                       ::left (or nil? ::bs-tree-map-node?)])))
+
+(spec/fdef create-bs-tree-map-node
+  :args (spec/cat :key ::key
+                  :value ::value
+                  :left ::bs-tree-map-node?
+                  :right ::bs-tree-map-node?)
+  :ret ::bs-tree-map-node?)
+
+(defn create-bs-tree-map-node
+  "Create a new map entry node for a binary search tree"
+  [key value left right]
+  {:pre [(spec/valid? ::key key)
+         (spec/valid? ::value value)
+         (spec/valid? ::bs-tree-map-node? left)
+         (spec/valid? ::bs-tree-map-node? right)]
+   :post [(spec/valid? ::bs-tree-map-node? %)]}
+  {:key key
+   :value value
+   :left left
+   :right right})
+
+(defn get-bs-tree-value-for-key
+  "Given a key and a tree get the key's value or return nil"
+  [key node]
+  {:pre [(spec/valid? ::key key)
+         (spec/valid? ::bs-tree-map-node? node)]}
+  (cond
+    (nil? node) nil
+    (< key (:key node)) (recur key (:left node))
+    (> key (:key node)) (recur key (:right node))
+    :else (:value node)))
+
+(defn add-or-update-bs-tree-map-entry
+  "Given a key, a value, and a map tree, add or update the map's key-value entry"
+  [key value node]
+  {:pre [(spec/valid? ::key key)
+         (spec/valid? ::value value)
+         (spec/valid? ::bs-tree-map-node? node)]
+   :post [(spec/valid? ::bs-tree-map-node? %)]}
+  (cond
+    (nil? node) (create-bs-tree-map-node key value nil nil)
+    (< key (:key node)) (create-bs-tree-map-node (:key node)
+                                                 (:value node)
+                                                 (add-or-update-bs-tree-map-entry key
+                                                                                  value
+                                                                                  (:left node))
+                                                 (:right node))
+    (> key (:key node)) (create-bs-tree-map-node (:key node)
+                                                 (:value node)
+                                                 (:left node)
+                                                 (add-or-update-bs-tree-map-entry key
+                                                                                  value
+                                                                                  (:right node)))
+    :else (create-bs-tree-map-node key value (:left node) (:right node))))
+
+(def squares (as-> (create-bs-tree-map-node 5 25 nil nil) tree
+               (add-or-update-bs-tree-map-entry 7 49 tree)
+               (add-or-update-bs-tree-map-entry 3 9 tree)
+               (add-or-update-bs-tree-map-entry 1 1 tree)
+               (add-or-update-bs-tree-map-entry 2 4 tree)
+               (add-or-update-bs-tree-map-entry 6 36 tree)
+               (add-or-update-bs-tree-map-entry 4 16 tree)))
+
+(get-bs-tree-value-for-key 7 (add-or-update-bs-tree-map-entry 7 100 squares))
