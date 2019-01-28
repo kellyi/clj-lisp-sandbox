@@ -1,28 +1,44 @@
 (ns paradigms-ai-programming.two
   (:require [clojure.spec.alpha :as spec]))
 
-(defonce articles '("the" "a"))
-(defonce nouns '("cat" "ball" "table" "dog" "robot" "ghost" "ennui"))
-(defonce verbs '("took" "saw" "ate" "haunted" "lost"))
+(def *simple-grammar*
+  '((sentence (noun-phrase verb-phrase))
+    (noun-phrase (article noun))
+    (verb-phrase (verb noun-phrase))
+    (article the a)
+    (noun robot mouse ball table)
+    (verb took saw liked lost ate)))
 
-(defn one-of
-  "Select one random element from an input list"
-  [l]
-  (rand-nth l))
+(def *grammar* *simple-grammar*)
 
-(defn noun-phrase
-  "Generate a random noun phrase"
-  []
-  (list (one-of articles) (one-of nouns)))
+(defn rule-lhs
+  "The left-hand side of a rule"
+  [[left & _tail]]
+  left)
 
-(defn verb-phrase
-  "Generate a rnadom verb phrase"
-  []
-  (concat (-> verbs one-of list) (noun-phrase)))
+(defn rule-rhs
+  "The right-hand side of a rule"
+  [[_left & right]]
+  right)
 
-(defn sentence
-  "Generate a random sentence"
-  []
-  (concat (noun-phrase) (verb-phrase)))
+(defn get-rule
+  "Finds the first rewrite rule from the grammar matching a key, k"
+  [k grammar]
+  (let [func (fn [[lhs & _tail]] (= k lhs))
+        rule (first (filter func grammar))]
+    rule))
 
-(sentence)
+(defn rewrites
+  "Return a list of possible rewrites for this category"
+  [category]
+  (rule-rhs (get-rule category *grammar*)))
+
+(defn generate
+  "Generate a random sentence or phrase"
+  [phrase]
+  (cond
+    (list? phrase) (mapcat generate phrase)
+    (rewrites phrase) (-> phrase rewrites rand-nth generate)
+    :else (list phrase)))
+
+(generate 'sentence)
