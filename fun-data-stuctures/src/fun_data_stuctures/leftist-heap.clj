@@ -53,11 +53,11 @@
          (spec/valid? ::leftist-heap-node? right)]
    :post [(spec/valid? ::leftist-heap-node? %)]}
   (cond
-    (>= (:rank left 0) (:rank right 0)) (create-leftist-heap-node (inc (:rank right 0))
+    (>= (:rank left 1) (:rank right 1)) (create-leftist-heap-node (inc (:rank right 1))
                                                                   value
                                                                   left
                                                                   right)
-    :else (create-leftist-heap-node (inc (:rank left 0))
+    :else (create-leftist-heap-node (inc (:rank left 1))
                                     value
                                     right
                                     left)))
@@ -86,7 +86,7 @@
   {:pre [(spec/valid? ::value value)
          (spec/valid? ::leftist-heap-node? heap)]
    :post [(spec/valid? ::leftist-heap-node? %)]}
-  (merge-heaps (create-leftist-heap-node 0 value nil nil) heap))
+  (merge-heaps (create-leftist-heap-node 1 value nil nil) heap))
 
 (defn delete-min
   "Return a new leftist heap with the minimum value of the prior heap removed"
@@ -94,14 +94,14 @@
   (merge-heaps left right))
 
 (def l-heap
-  (as-> (create-leftist-heap-node 0 6 nil nil) l-tree
+  (as-> (create-leftist-heap-node 1 6 nil nil) l-tree
     (insert-value 8 l-tree)
     (insert-value 7 l-tree)
     (insert-value 14 l-tree)
     (insert-value -20 l-tree)))
 
 (def r-heap
-  (as-> (create-leftist-heap-node 0 100 nil nil) r-tree
+  (as-> (create-leftist-heap-node 1 100 nil nil) r-tree
     (insert-value 20 r-tree)
     (insert-value 50 r-tree)
     (insert-value -50 r-tree)
@@ -110,3 +110,13 @@
     (delete-min r-tree)))
 
 (delete-min (merge-heaps l-heap r-heap))
+
+(defn from-list
+  "Create a leftist heap from a list of numbers"
+  [[h & tail]]
+  {:pre [(spec/valid? number? h)
+         (spec/valid? (spec/coll-of number?) tail)]
+   :post [(spec/valid? ::leftist-heap-node? %)]}
+  (reduce #(insert-value %2 %1) (create-leftist-heap-node 1 h nil nil) tail))
+
+(from-list '(50 -50 100 -100 2000 -2000 1 0 2 -5000 5000))
