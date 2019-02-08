@@ -1,4 +1,4 @@
-(ns fun-data-stuctures.three
+(ns fun-data-stuctures.leftist-heap
   (:require [clojure.spec.alpha :as spec]
             [clojure.spec.gen.alpha :as gen]))
 
