@@ -217,3 +217,213 @@
     :else (cons (car lat) (multisubst new old (cdr lat)))))
 
 (multisubst 'coffee 'tea '(tea cup tea shop tea house tea pot))
+
+(atom? 14)
+
+(defn add1
+  "Add one to a natural integer"
+  [n]
+  (cond
+    (-> n nat-int? not) nil
+    :else (inc n)))
+
+(defn sub1
+  "Subtract one from a natural integer"
+  [n]
+  (cond
+    (-> n nat-int? not) nil
+    (zero? n) nil
+    :else (dec n)))
+
+(zero? 0)
+
+(defn plus
+  "Add two natural integers"
+  [n m]
+  (cond
+    (zero? m) n
+    :else (add1 (plus n (sub1 m)))))
+
+(plus 2 2)
+(plus 30 5)
+
+(defn minus
+  "Subtract m from n"
+  [n m]
+  (cond
+    (zero? m) n
+    :else (sub1 (minus n (sub1 m)))))
+
+(minus 30 5)
+(minus 2 2)
+
+(defn tup?
+  "Check whether a list is a tuple of numbers"
+  [l]
+  (cond
+    (null? l) true
+    (-> l car nat-int? not) false
+    :else (-> l cdr tup?)))
+
+(tup? '(1 2 3))
+(tup? '(a b c))
+(tup? '(4 5 6 x y z))
+
+(defn addtup
+  "Add a tuple of numbers"
+  [t]
+  (cond
+    (null? t) 0
+    :else (plus (car t) (-> t cdr addtup))))
+
+(addtup '(1 2 3 4 5))
+(addtup '(10 20 30 5))
+
+(defn multiply
+  "Multiply n m times"
+  [n m]
+  (cond
+    (zero? m) 0
+    :else (plus n (multiply n (sub1 m)))))
+
+(multiply 3 3)
+(multiply 10 5)
+
+(defn tup-plus
+  "Return a new tuple which adds each element of t1 to the element at the same index in t2"
+  [t1 t2]
+  (cond
+    (and (null? t1) (null? t2)) '()
+    (null? t1) t2
+    (null? t2) t1
+    :else (cons (plus (car t1) (car t2)) (tup-plus (cdr t1) (cdr t2)))))
+
+(tup-plus '(1 1 1 1 1) '(10 10 10 10 10))
+(tup-plus '(1 1 1) '(10 10 10 10 10 10 10 10))
+
+(defn gt
+  "Check whether n is greater than m"
+  [n m]
+  (cond
+    (zero? n) false
+    (zero? m) true
+    :else (recur (sub1 n) (sub1 m))))
+
+(gt 10 5)
+(gt 5 10)
+(gt 10 10)
+
+(defn lt
+  "Check whether n is less than m"
+  [n m]
+  (cond
+    (zero? m) false
+    (zero? n) true
+    :else (recur (sub1 n) (sub1 m))))
+
+(lt 10 5)
+(lt 5 10)
+(lt 10 10)
+
+(defn equals
+  "Check whether n equals m"
+  [n m]
+  (cond
+    (gt n m) false
+    (lt n m) false
+    :else true))
+
+(equals 10 10)
+(equals 5 5)
+(equals 1 2)
+
+(defn divide
+  "Divide n by m"
+  [n m]
+  (cond
+    (lt n m) 0
+    :else (add1 (divide (minus n m) m))))
+
+(divide 10 5)
+(divide 20 2)
+(divide 20 3)
+
+(defn lat-length
+  "Count the length of lat"
+  [lat]
+  (cond
+    (null? lat) 0
+    :else (add1 (lat-length (cdr lat)))))
+
+(lat-length '(1 2 3 4 5))
+(lat-length '(hello world foo bar baz))
+(lat-length '())
+
+(defn pick
+  "Pick the element at index from lat"
+  [index lat]
+  (cond
+    (zero? (sub1 index)) (car lat)
+    :else (pick (sub1 index) (cdr lat))))
+
+(pick 4 '(hello world foo bar baz))
+
+(defn rempick
+  "Pick and remove the element at index from lat"
+  [index lat]
+  (cond
+    (zero? (sub1 index)) (cdr lat)
+    :else (cons (car lat) (rempick (sub1 index) (cdr lat)))))
+
+(rempick 3 '(hotdogs with hot mustard))
+
+(defn no-nums
+  "Return a version of lat with all natural integers removed"
+  [lat]
+  (cond
+    (null? lat) '()
+    (nat-int? (car lat)) (-> lat cdr no-nums)
+    :else (cons (car lat) (-> lat cdr no-nums))))
+
+(no-nums '(1 2 3 a b c))
+(no-nums '(a b c))
+(no-nums '(1.2 2 3.4 a))
+
+(defn all-nums
+  "Return a version of lat which only includes its natural integers"
+  [lat]
+  (cond
+    (null? lat) '()
+    (-> lat car nat-int? not) (-> lat cdr all-nums)
+    :else (cons (car lat) (-> lat cdr all-nums))))
+
+(all-nums '(1 2 3 a b c))
+(all-nums '(a b c))
+(all-nums '())
+(all-nums '(1.2 2 3.4 4 a))
+
+(defn eqan?
+  "Check number or atom equality"
+  [a1 a2]
+  (cond
+    (and (nat-int? a1) (nat-int? a2)) (equals a1 a2)
+    (or (nat-int? a1) (nat-int? a2)) false
+    :else (eq? a1 a2)))
+
+(eqan? 1 2)
+(eqan? 1 '1)
+(eqan? 1.0 1)
+(eqan? 'a 'a)
+(eqan? 'a 1)
+
+(defn occur
+  "Count the number of times atom a occurs in lat"
+  [a lat]
+  (cond
+    (null? lat) 0
+    (eqan? (car lat) a) (add1 (occur a (cdr lat)))
+    :else (occur a (cdr lat))))
+
+(occur 1 '(1 2 3 4 1 2 3 4))
+(occur 'a '(1 a 2 a 3 a 4 a))
+(occur 'b '(1 2 3 4 5 6))
