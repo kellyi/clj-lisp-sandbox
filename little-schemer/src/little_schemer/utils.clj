@@ -1,6 +1,8 @@
 (ns little-schemer.utils
   (:require [clojure.spec.alpha :as spec]))
 
+(declare null? equal? eqlist?)
+
 (defn atom?
   "Check whether an argument is an atom: e.g. not a list"
   [x]
@@ -121,8 +123,8 @@
   "Remove an atom from a list of atoms"
   [a lat]
   (cond
-    (nil? lat) '()
-    (eq? (car lat) a) (cdr lat)
+    (null? lat) '()
+    (equal? (car lat) a) (cdr lat)
     :else (cons (car lat) (rember? a (cdr lat)))))
 
 (rember? 'mint '(lamb chops and mint jelly))
@@ -427,3 +429,130 @@
 (occur 1 '(1 2 3 4 1 2 3 4))
 (occur 'a '(1 a 2 a 3 a 4 a))
 (occur 'b '(1 2 3 4 5 6))
+
+(defn rember*
+  "Remove atom a from nested list l"
+  [a l]
+  (cond
+    (null? l) '()
+    (atom? (car l)) (cond
+                      (eq? a (car l)) (rember* a (cdr l))
+                      :else (cons (car l) (rember* a (cdr l))))
+    :else (cons (rember* a (car l)) (rember* a (cdr l)))))
+
+(rember* 'cup '((coffee) cup ((tea) cup) (and (milk) cup)))
+(rember* 'sauce '(((tomato sauce)) ((bean) sauce) (and ((flying)) sauce)))
+
+(defn insert-r*
+  "Insert a new atom to the right of old atom in a nested list l"
+  [new old l]
+  (cond
+    (null? l) '()
+    (atom? (car l)) (cond
+                      (eq? (car l) old) (cons old (cons new (insert-r* new old (cdr l))))
+                      :else (cons (car l) (insert-r* new old (cdr l))))
+    :else (cons (insert-r* new old (car l)) (insert-r* new old (cdr l)))))
+
+(insert-r* 'roast
+           'chuck
+           '(((how much (wood))
+              could
+              ((a (wood) chuck))
+              (((chuck)))
+              (if (a) ((wood chuck)))
+              could
+              chuck
+              wood)))
+
+(defn occur*
+  "Count occurences of atom a in nested list l"
+  [a l]
+  (cond
+    (null? l) 0
+    (atom? (car l)) (cond
+                      (eq? (car l) a) (add1 (occur* a (cdr l)))
+                      :else (occur* a (cdr l)))
+    :else (plus (occur* a (car l)) (occur* a (cdr l)))))
+
+(occur* 'banana '((banana)
+                  (split ((((banana ice))) (cream (banana)) sherbet))
+                  (banana)
+                  (bread)
+                  (banana brandy)))
+
+(defn subst*
+  "Replace occurences of old atom in nested list l with new atom"
+  [new old l]
+  (cond
+    (null? l) '()
+    (atom? (car l)) (cond
+                      (eq? (car l) old) (cons new (subst* new old (cdr l)))
+                      :else (cons (car l) (subst* new old (cdr l))))
+    :else (cons (subst* new old (car l)) (subst* new old (cdr l)))))
+
+(subst* 'orange 'banana '((banana)
+                          (split ((((banana ice))) (cream (banana)) sherbet))
+                          (banana)
+                          (bread)
+                          (banana brandy)))
+
+(defn insert-l*
+  "Insert a new atom to the left of each occurence of old atom in nested list l"
+  [new old l]
+  (cond
+    (null? l) '()
+    (atom? (car l)) (cond
+                      (eq? (car l) old) (cons new (cons old (insert-l* new old (cdr l))))
+                      :else (cons (car l) (insert-l* new old (cdr l))))
+    :else (cons (insert-l* new old (car l)) (insert-l* new old (cdr l)))))
+
+(insert-l* 'pecker
+           'chuck
+           '(((how much (wood))
+              could
+              ((a (wood) chuck))
+              (((chuck)))
+              (if (a) ((wood chuck)))
+              could
+              chuck
+              wood)))
+
+(defn member*
+  "Check whether atom a appears in nested list l"
+  [a l]
+  (cond
+    (null? l) false
+    (atom? (car l)) (or (eq? (car l) a) (member* a (cdr l)))
+    :else (or (member* a (car l)) (member* a (cdr l)))))
+
+(member* 'chips '((potato (chips ((with) fish) (chips)))))
+
+(defn leftmost
+  "Find the leftmost atom in a non-empty list of s-expressions that doesn't contain the empty list"
+  [l]
+  (cond
+    (atom? (car l)) (car l)
+    :else (leftmost (car l))))
+
+(leftmost '((potato (chips ((with) fish) (chips)))))
+(leftmost '(((hot) (tuna (and))) cheese))
+(leftmost '())
+
+(defn equal?
+  ""
+  [s1 s2]
+  (cond
+    (and (atom? s1) (atom? s2)) (eqan? s1 s2)
+    (or (atom? s1) (atom? s2)) false
+    :else (eqlist? s1 s2)))
+
+(defn eqlist?
+  "Determine whether two lists are equal"
+  [l1 l2]
+  (cond
+    (and (null? l1) (null? l2)) true
+    (or (null? l1) (null? l2)) false
+    :else (and (equal? (car l1) (car l2))
+               (eqlist? (cdr l1) (cdr l2)))))
+
+(eqlist? '(strawberry ice cream) '(strawberry ice cream))
