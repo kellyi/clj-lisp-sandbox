@@ -8,6 +8,57 @@
   [x]
   (-> x list? not))
 
+(defn eq?
+  "Check equality between x & y"
+  [x y]
+  (cond
+    (-> x atom? not) nil
+    (-> y atom? not) nil
+    (number? x) nil
+    (number? y) nil
+    :else (= x y)))
+
+(eq? 'Harry 'Harry)
+(eq? 'margarine 'butter)
+(eq? '() '(strawberry))
+(eq? 6 7)
+(eq? (car '(Mary had a little lamb chop)) 'Mary)
+(eq? (cdr '(soured milk)) 'milk)
+(eq? (car '(beans beans we need jelly beans)) (-> '(beans beans we need jelly beans) cdr car))
+
+(defn eqan?
+  "Check number or atom equality"
+  [a1 a2]
+  (cond
+    (and (nat-int? a1) (nat-int? a2)) (equals a1 a2)
+    (or (nat-int? a1) (nat-int? a2)) false
+    :else (eq? a1 a2)))
+
+(eqan? 1 2)
+(eqan? 1 '1)
+(eqan? 1.0 1)
+(eqan? 'a 'a)
+(eqan? 'a 1)
+
+(defn equal?
+  ""
+  [s1 s2]
+  (cond
+    (and (atom? s1) (atom? s2)) (eqan? s1 s2)
+    (or (atom? s1) (atom? s2)) false
+    :else (eqlist? s1 s2)))
+
+(defn eqlist?
+  "Determine whether two lists are equal"
+  [l1 l2]
+  (cond
+    (and (null? l1) (null? l2)) true
+    (or (null? l1) (null? l2)) false
+    :else (and (equal? (car l1) (car l2))
+               (eqlist? (cdr l1) (cdr l2)))))
+
+(eqlist? '(strawberry ice cream) '(strawberry ice cream))
+
 (atom? 'atom)
 (atom? 'turkey)
 (atom? 1492)
@@ -86,24 +137,6 @@
 (-> '(swing (low sweet) cherry oat) cdr car atom?)
 (= 'Harry 'Harry)
 
-(defn eq?
-  "Check equality between x & y"
-  [x y]
-  (cond
-    (-> x atom? not) nil
-    (-> y atom? not) nil
-    (number? x) nil
-    (number? y) nil
-    :else (= x y)))
-
-(eq? 'Harry 'Harry)
-(eq? 'margarine 'butter)
-(eq? '() '(strawberry))
-(eq? 6 7)
-(eq? (car '(Mary had a little lamb chop)) 'Mary)
-(eq? (cdr '(soured milk)) 'milk)
-(eq? (car '(beans beans we need jelly beans)) (-> '(beans beans we need jelly beans) cdr car))
-
 (defn lat?
   "Look at each s-expression in a list and check if it's an atom until the end of the s-expressions"
   [l]
@@ -135,9 +168,10 @@
   [lol]
   (cond
     (null? lol) '()
-    :else (cons (-> lol car car) (-> lol cdr firsts))))
+    :else (cons (car (car lol))
+                (firsts (cdr lol)))))
 
-(firsts '((a) (b) (c) (d)))
+(firsts '((a z) (b y) (c x) (d)))
 (firsts '())
 
 (defn insert-r
@@ -185,7 +219,7 @@
   [a lat]
   (cond
     (null? lat) '()
-    (eq? a (car lat)) (multirember a (cdr lat))
+    (equal? a (car lat)) (multirember a (cdr lat))
     :else (cons (car lat) (multirember a (cdr lat)))))
 
 (multirember 'cup '(coffee cup tea cup and milk cup))
@@ -404,20 +438,6 @@
 (all-nums '())
 (all-nums '(1.2 2 3.4 4 a))
 
-(defn eqan?
-  "Check number or atom equality"
-  [a1 a2]
-  (cond
-    (and (nat-int? a1) (nat-int? a2)) (equals a1 a2)
-    (or (nat-int? a1) (nat-int? a2)) false
-    :else (eq? a1 a2)))
-
-(eqan? 1 2)
-(eqan? 1 '1)
-(eqan? 1.0 1)
-(eqan? 'a 'a)
-(eqan? 'a 1)
-
 (defn occur
   "Count the number of times atom a occurs in lat"
   [a lat]
@@ -522,7 +542,7 @@
   [a l]
   (cond
     (null? l) false
-    (atom? (car l)) (or (eq? (car l) a) (member* a (cdr l)))
+    (atom? (car l)) (or (equal? (car l) a) (member* a (cdr l)))
     :else (or (member* a (car l)) (member* a (cdr l)))))
 
 (member* 'chips '((potato (chips ((with) fish) (chips)))))
@@ -538,21 +558,359 @@
 (leftmost '(((hot) (tuna (and))) cheese))
 (leftmost '())
 
-(defn equal?
-  ""
+(defn numbered?
+  [aexp]
+  (cond
+    (atom? aexp) (nat-int? aexp)
+    :else (and (numbered? (car aexp))
+               (numbered? (-> aexp cdr cdr car)))))
+
+(numbered? 1)
+(numbered? '(1 2 3))
+
+(defn arrow
+  [x y]
+  (cond
+    (= x 3) x
+    :else y))
+
+(defn first-sub-exp
+  [aexp]
+  (-> aexp cdr car))
+
+(defn second-sub-exp
+  [aexp]
+  (-> aexp cdr cdr car))
+
+(defn operator
+  [aexp]
+  (car aexp))
+
+(defn value*
+  [nexp]
+  (cond
+    (atom? nexp) nexp
+    (eq? (operator nexp) 'plus) (plus (-> nexp first-sub-exp value*)
+                                      (-> nexp second-sub-exp value*))
+    (eq? (operator nexp) 'multiply) (multiply (-> nexp first-sub-exp value*)
+                                              (-> nexp second-sub-exp value*))
+    :else (arrow (-> nexp first-sub-exp value*)
+                 (-> nexp second-sub-exp value*))))
+
+(defn sero?
+  [n]
+  (null? n))
+
+(defn edd1
+  [n]
+  (cons '() n))
+
+(sero? '())
+(-> '() edd1 edd1 edd1 edd1)
+
+(defn zub1
+  [n]
+  (cdr n))
+
+(-> '(() ()) zub1 zub1)
+
+(defn plus-plus
+  [n m]
+  (cond
+    (sero? m) n
+    :else (edd1 (plus-plus n (zub1 m)))))
+
+(plus-plus '(() ()) '(() () ()))
+
+(defn set?*
+  "Check whether a list is a set"
+  [lat]
+  (cond
+    (null? lat) true
+    (member* (car lat) (cdr lat)) false
+;;    (eq? (car lat) (-> lat cdr car)) false
+    :else (set?* (cdr lat))))
+
+(set?* '(1 2 3))
+(set?* '(1 2 3 1))
+
+(defn makeset
+  "Create a set from a list"
+  [lat]
+  (cond
+    (null? lat) '()
+    (member* (car lat) (cdr lat)) (makeset (cdr lat))
+    :else (cons (car lat) (makeset (cdr lat)))))
+
+(makeset '(1 2 3 1))
+
+(defn subset?
+  "Check whether s1 is a subset of s2"
   [s1 s2]
   (cond
-    (and (atom? s1) (atom? s2)) (eqan? s1 s2)
-    (or (atom? s1) (atom? s2)) false
-    :else (eqlist? s1 s2)))
+    (null? s1) true
+    (member* (car s1) s2) (subset? (cdr s1) s2)
+    :else false))
 
-(defn eqlist?
-  "Determine whether two lists are equal"
-  [l1 l2]
+(subset? '(1 2 3) '(1 2 3 4 5 6))
+(subset? '(1 2 3) '(2 3 4 5 6))
+
+(defn eqset?
+  "Check whether two sets are equal"
+  [s1 s2]
+  (and (subset? s1 s2)
+       (subset? s2 s1)))
+
+(eqset? '(1 2 3) '(1 2 3))
+(eqset? '(1 2 3) '(1 2 3 4))
+
+(defn intersect?
+  "Check whether two sets intersect"
+  [s1 s2]
   (cond
-    (and (null? l1) (null? l2)) true
-    (or (null? l1) (null? l2)) false
-    :else (and (equal? (car l1) (car l2))
-               (eqlist? (cdr l1) (cdr l2)))))
+    (null? s1) false
+    :else (or (member* (car s1) s2)
+              (intersect? (cdr s1) s2))))
 
-(eqlist? '(strawberry ice cream) '(strawberry ice cream))
+(intersect? '(1 2 3) '(3 4 5))
+(intersect? '(1 2 3) '(4 5 6))
+
+(defn intersection
+  "Return the intersection of two sets"
+  [s1 s2]
+  (cond
+    (null? s1) '()
+    (member* (car s1) s2) (cons (car s1) (intersection (cdr s1) s2))
+    :else (intersection (cdr s1) s2)))
+
+(intersection '(stewed tomatoes and macaroni)
+              '(macaroni and cheese))
+
+(intersection '() '())
+
+(intersection '(hello world) '(hello))
+
+(defn union
+  "Return the union of two sets"
+  [s1 s2]
+  (cond
+    (null? s1) s2
+    (member* (car s1) s2) (union (cdr s1) s2)
+    :else (cons (car s1) (union (cdr s1) s2))))
+
+(defn difference
+  "Return the difference of two sets"
+  [s1 s2]
+  (cond
+    (null? s1) '()
+    (member* (car s1) s2) (difference (cdr s1) s2)
+    :else (cons (car s1) (difference (cdr s1) s2))))
+
+(difference '(stewed tomatoes and macaroni)
+            '(macaroni and cheese))
+
+(union '(1 2 3) '(4 5 6))
+(union '(100 200 300) '(a b c))
+
+(defn intersectall
+  "Find the intersection of a list of sets"
+  [l-set]
+  (cond
+    (null? (cdr l-set)) (car l-set)
+    :else (intersection (car l-set) (-> l-set cdr intersectall))))
+
+(intersectall '((a b c)
+                (b e e a)
+                (c a d e)))
+
+(intersectall '((six pears and)
+                (three peaches and six peppers)
+                (six ducks and horses)))
+
+(defn a-pair?
+  "Check whether a list is a pair"
+  [x]
+  (cond
+    (atom? x) false
+    (null? x) false
+    (null? (cdr x)) false
+    (null? (cdr (cdr x))) true
+    :else false))
+
+(a-pair? '(1 2))
+(a-pair? '((1) (2)))
+(a-pair? '((1) (2) (3)))
+
+(defn third
+  "Get third element from a list"
+  [l]
+  (-> l cdr cdr car))
+
+(third '(1 2 3))
+(third '(1 2))
+(third '(1 2 3 4 5))
+
+(defn is-set?
+  [s]
+  (cond
+    (empty? s) true
+    (member* (car s) (cdr s)) false
+    (eq? (car s) (-> s cdr car)) false
+    :else (-> s cdr is-set?)))
+
+(defn fun?
+  ""
+  [rel]
+  (-> rel firsts set?*))
+
+;;;;
+
+(defn eq?-c
+  [a]
+  (fn
+    [x]
+    (eq? x a)))
+
+(def eq?-salad (eq?-c 'salad))
+(eq?-salad 'salad)
+(eq?-salad 'tuna)
+
+(defn rember-f
+  [test?]
+  (fn
+    [a l]
+    (cond
+      (null? l) '()
+      (test? (car l) a) (cdr l)
+      :else (cons (car l) ((rember-f test?) a (cdr l))))))
+
+(def rember-eq? (rember-f eq?))
+(rember-eq? 'tuna '(tuna salad is good))
+(rember-eq? 'tuna '(shrimp salad and tuna salad))
+((rember-f eq?) 'tuna '(shrimp salad and tuna salad))
+
+(defn insert-g
+  [sequencer]
+  (fn
+    [new old l]
+    (cond
+      (null? l) '()
+      (eq? (car l) old) (sequencer new old (cdr l))
+      :else (cons (car l) ((insert-g sequencer) new old (cdr l))))))
+
+(def insertL (insert-g (fn
+                         [new old l]
+                         (cons new (cons old l)))))
+
+(def insertR (insert-g (fn
+                         [new old l]
+                         (cons old (cons new l)))))
+
+(def subst3 (insert-g (fn
+                        [new old l]
+                        (cons new l))))
+
+(defn yyy
+  [a l]
+  ((insert-g (fn
+               [new old l]
+               l)) false a l))
+
+(yyy 'sausage '(pizza with sausage and bacon))
+
+(defn atom-to-function
+  [x]
+  (cond
+    (eq? x 'plus) plus
+    (eq? x 'multiply) multiply
+    :else arrow))
+
+(defn value-prime
+  [nexp]
+  (cond
+    (atom? nexp) nexp
+    :else ((atom-to-function (operator nexp))
+           (value-prime (first-sub-exp nexp))
+           (value-prime (second-sub-exp nexp)))))
+
+(defn multirember-f
+  [test?]
+  (fn
+    [a lat]
+    (cond
+      (null? lat) '()
+      (test? a (car lat)) ((multirember-f test?) a (cdr lat))
+      :else (cons (car lat) ((multirember-f test?) a (cdr lat))))))
+
+((multirember-f eq?) 'tuna '(tuna salad tuna steak and tuna))
+
+(def eq?-tuna (eq?-c 'tuna))
+
+(defn multiremberT
+  [test? lat]
+  (cond
+    (null? lat) '()
+    (test? (car lat)) (multiremberT test? (cdr lat))
+    :else (cons (car lat) (multiremberT test? (cdr lat)))))
+
+(multiremberT eq?-tuna '(shrimp salad tuna salad and tuna))
+
+(defn multirember&co
+  [a lat col]
+  (cond
+    (null? lat) (col '() '())
+    (eq? (car lat) a) (multirember&co a (cdr lat) (fn
+                                                    [newlat seen]
+                                                    (col newlat (cons (car lat) seen))))
+    :else (multirember&co a (cdr lat) (fn
+                                        [newlat seen]
+                                        (col (cons (car lat) newlat) seen)))))
+
+(defn a-friend
+  [x y]
+  (null? y))
+
+(multirember&co 'tuna '() a-friend)
+(multirember&co 'tuna '(tuna) a-friend)
+(multirember&co 'tuna '(strawberries tuna and swordfish) a-friend)
+
+(defn multiinsertLR
+  [new oldL oldR lat]
+  (cond
+    (null? lat) '()
+    (eq? (car lat) oldL) (cons new (cons oldL (multiinsertLR new oldL oldR (cdr lat))))
+    (eq? (car lat) oldR) (cons oldR (cons new (multiinsertLR new oldL oldR (cdr lat))))
+    :else (cons (car lat) (multiinsertLR new oldL oldR (cdr lat)))))
+
+(defn multiinsertLR&co
+  [new oldL oldR lat col]
+  (cond
+    (null? lat) (col '() 0 0)
+    (eq? (car lat) oldL) (multiinsertLR&co new
+                                           oldL
+                                           oldR
+                                           (cdr lat)
+                                           (fn
+                                             [newlat L R]
+                                             (col (cons new (cons oldL newlat)) (add1 L) R)))
+    (eq? (car lat) oldR) (multiinsertLR&co new
+                                           oldL
+                                           oldR
+                                           (cdr lat)
+                                           (fn
+                                             [newlat L R]
+                                             (col (cons oldR (cons new newlat)) L (add1 R))))
+    :else (multiinsertLR&co new oldL oldR (cdr lat) (fn
+                                                      [newlat L R]
+                                                      (col (cons (car lat) newlat) L R)))))
+
+(defn evens-only*
+  [l]
+  (cond
+    (null? l) '()
+    (atom? (car l)) (cond
+                      (even? (car l)) (cons (car l) (evens-only* (cdr l)))
+                      :else (evens-only* (cdr l)))
+    :else (cons (evens-only* (car l)) (evens-only* (cdr l)))))
+
+(evens-only* '((9 1 2 8) 3 10 ((9 9) 7 6)))
