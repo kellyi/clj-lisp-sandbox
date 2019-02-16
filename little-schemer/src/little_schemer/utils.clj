@@ -914,3 +914,231 @@
     :else (cons (evens-only* (car l)) (evens-only* (cdr l)))))
 
 (evens-only* '((9 1 2 8) 3 10 ((9 9) 7 6)))
+
+(defn keep-looking
+  [a sorn lat]
+  (cond
+    (nat-int? sorn) (keep-looking a (pick sorn lat) lat)
+    :else (eq? sorn a)))
+
+(defn looking
+  [a lat]
+  (keep-looking a (pick 1 lat) lat))
+
+(looking 'caviar '(6 2 4 caviar 5 7 3))
+(looking 'caviar '(6 2 grits caviar 5 7 3))
+(looking 'caviar '(6 2 4 caviar 5 7 3))
+(pick 6 '(6 2 4 caviar 5 7 3))
+(pick 7 '(6 2 4 caviar 5 7 3))
+(keep-looking 'caviar 3 '(6 2 4 caviar 5 7 3))
+;; 'looking is a partial function that never completes
+;; for elements of its range for which its domain is undefined
+;; (looking 'caviar '(7 1 2 caviar 5 6 3))
+
+;; 'eternity is a totally partial function: it never completes for any of its
+;; possible inputs
+(defn eternity
+  "A partial f"
+  [x]
+  (eternity x))
+
+(defn build
+  [s1 s2]
+  (cons s1 (cons s2 '())))
+
+(build '(1 2 3) '(4 5 6))
+
+(defn shift
+  [pair]
+  (build (-> pair first first)
+         (build (-> pair first second)
+                (second pair))))
+
+(shift '((a b) c))
+(shift '((a b) (c d)))
+
+(defn align
+  [pora]
+  (cond
+    (atom? pora) pora
+    (a-pair? (first pora)) (-> pora shift align)
+    :else (build (first pora)
+                 (-> pora second align))))
+
+(defn length*
+  [pora]
+  (cond
+    (atom? pora) 1
+    :else (plus (-> pora first length*)
+                (-> pora second length*))))
+
+(defn weight*
+  [pora]
+  (cond
+    (atom? pora) 1
+    :else (plus (multiply (-> pora first weight*) 2)
+                (-> pora second weight*))))
+
+(defn revpair
+  [pair]
+  (build (second pair) (first pair)))
+
+(defn shuffle*
+  [pora]
+  (cond
+    (atom? pora) pora
+    (-> pora first a-pair?) (-> pora revpair shuffle*)
+    :else (build (first pora)
+                 (-> pora second shuffle*))))
+
+(shuffle* '(a (b c)))
+(shuffle* '(a b))
+(shuffle* '((a b) (c d)))
+
+(defn one?
+  [n]
+  (= n 1))
+
+(defn collatz
+  [n]
+  (cond
+   (one? n) 1
+   (even? n) (collatz (/ n 2))
+   :else (collatz (add1 (multiply 3 n)))))
+
+(collatz 5)
+(collatz 1)
+(collatz 10)
+(collatz 50)
+
+(defn ackermann
+  [n m]
+  (cond
+    (zero? n) (add1 m)
+    (zero? m) (ackermann (sub1 n) 1)
+    :else (ackermann (sub1 n)
+                     (ackermann n (sub1 m)))))
+
+(ackermann 1 0)
+(ackermann 1 1)
+(ackermann 2 2)
+;; (ackermann 4 3) -> no answer
+
+(defn will-stop?
+  "Hypothetical function to check whether a function f will stop (whether it is total)"
+  [f]
+  true)
+
+(defn last-try
+  "Arg for hypothetical will-stop function"
+  [x]
+  (and (will-stop? last-try)
+       (eternity x)))
+
+;; (last-try '())
+
+(def length0
+  (fn
+    [l]
+    (cond
+      (null? l) 0
+      :else (-> l cdr eternity add1))))
+
+(length0 '())
+
+(def length1
+  (fn
+    [l]
+    (cond
+      (null? l) 0
+      :else (-> l cdr length0 add1))))
+
+(length1 '(1))
+
+(def lengthLTE1
+  (fn
+    [l]
+    (null? l) 0
+    :else (add1
+           ((fn
+              [l]
+              (cond
+                (null? l) 0
+                :else (add1 (eternity (cdr l))))))
+           (cdr l))))
+
+(def length0-2
+  ((fn
+    [len]
+    (fn
+      [l]
+      (cond
+        (null? l) 0
+        :else (add1 (len (cdr l))))))
+    eternity))
+
+(length0-2 '())
+
+(def length1-2
+  ((fn
+     [f]
+     (fn
+       [l]
+       (cond
+         (null? l) 0
+         :else (add1 (f (cdr l))))))
+   ((fn
+      [g]
+      (fn
+        [l]
+        (cond
+          (null? l) 0
+          :else (add1 (g (cdr l))))))
+    eternity)))
+
+(length1-2 '())
+(length1-2 '(1))
+
+(def length2-2
+  ((fn
+     [f]
+     (fn
+       [l]
+       (cond
+         (null? l) 0
+         :else (add1 (f (cdr l))))))
+   ((fn
+      [f]
+      (fn
+        [l]
+        (cond
+          (null? l) 0
+          :else (add1 (f (cdr l))))))
+    ((fn
+       [f]
+       (fn
+         [l]
+         (cond
+           (null? l) 0
+           :else (add1 (f (cdr l))))))
+     eternity))))
+
+(length2-2 '())
+(length2-2 '(1))
+(length2-2 '(1 2))
+
+;; ...
+
+(def Y
+  (fn
+    [le]
+    ((fn
+       [f]
+       (f f))
+     (fn
+       [f]
+       (le (fn
+             [x]
+             ((f f) x)))))))
+
+;; (Y Y)
