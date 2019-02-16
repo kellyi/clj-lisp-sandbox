@@ -1,7 +1,7 @@
 (ns little-schemer.utils
   (:require [clojure.spec.alpha :as spec]))
 
-(declare null? equal? eqlist?)
+(declare null? equal? eqlist? meaning)
 
 (defn atom?
   "Check whether an argument is an atom: e.g. not a list"
@@ -1142,3 +1142,179 @@
              ((f f) x)))))))
 
 ;; (Y Y)
+
+(def new-entry build)
+
+(new-entry '(appetizer entree beverage)
+           '(pate beouf vin))
+
+(new-entry '(appetizer entree beverage)
+           '(beer beer beer))
+
+(new-entry '(beverage dessert)
+           '((food is) (number one with us)))
+
+(defn lookup-in-entry-help
+  [nm nms vls entry-f]
+  (cond
+    (null? nms) (entry-f nm)
+    (eq? (car nms) nm) (car vls)
+    :else (lookup-in-entry-help nm
+                                (cdr nms)
+                                (cdr vls)
+                                entry-f)))
+
+(defn lookup-in-entry
+  [nm entry entry-f]
+  (lookup-in-entry-help nm
+                        (first entry)
+                        (second entry)
+                        entry-f))
+
+(lookup-in-entry 'entree '((appetizer entree beverage)
+                           (food tastes good)) identity)
+
+(lookup-in-entry 'dessert '((appetizer entree beverage)
+                            (food tastes good)) (fn [_] nil))
+
+(def extend-table cons)
+
+(defn lookup-in-table
+  [nm table table-f]
+  (cond
+    (null? table) (table-f nm)
+    :else (lookup-in-entry nm
+                           (car table)
+                           (fn
+                             [n]
+                             (lookup-in-table n
+                                              (cdr table)
+                                              table-f)))))
+
+(lookup-in-table 'entree
+                 '(((entree dessert)
+                    (spaghetti spumoni))
+                    ((appetizer entree beverage)
+                    (food tastes good)))
+                 identity)
+
+(lookup-in-table 'hello
+                 '(((entree dessert)
+                    (spaghetti spumoni))
+                   ((appetizer entree beverage)
+                    (food tastes good)))
+                 (fn [_] "hello world!"))
+
+(defn *const
+  [e table]
+  (cond
+    (number? e) e
+    (eq? e true) true
+    (eq? e false) false
+    :else (build 'primitive e)))
+
+(defn text-of-e
+  [e]
+  (second e))
+
+(defn *quote
+  [e table]
+  (text-of-e e))
+
+(defn initial-table
+  [n]
+  (car '()))
+
+(defn *identifier
+  [e table]
+  (lookup-in-table e table initial-table))
+
+(defn *lambda
+  [e table]
+  (build 'non-primitive (cons table (cdr e))))
+
+(def table-of first)
+(def formals-of second)
+(def body-of third)
+
+(def question-of first)
+(def answer-of second)
+
+(defn else?
+  [x]
+  (cond
+    (atom? x) (eq? x 'else)
+    :else false))
+
+(defn atom-to-action
+  [e]
+  (cond
+    (number? e) *const
+    (eq? e true) *const
+    (eq? e false) *const
+    (eq? e 'cons) *const
+    (eq? e 'car) *const
+    (eq? e 'cdr) *const
+    (eq? e 'null?) *const
+    (eq? e 'eq?) *const
+    (eq? e 'atom?) *const
+    (eq? e 'zero?) *const
+    (eq? e 'add1) *const
+    (eq? e 'sub1) *const
+    (eq? e 'number?) *const
+    :else *identifier))
+
+(defn list-to-action
+  [e]
+  (cond
+    (atom? (car e)) (cond
+                      (eq? (car e) *quote) *quote
+                      (eq? (car e) *lambda) *lambda
+                      (eq? (car e) *cond) *cond
+                      :else *application)
+    :else *application))
+
+(defn expression-to-action
+  [e]
+  (cond
+    (atom? e) (atom-to-action e)
+    :else (list-to-action e)))
+
+(defn value2*
+  [e]
+  (meaning e '()))
+
+(defn meaning
+  [e table]
+  ((expression-to-action e) e table))
+
+(defn evcon
+  [lines table]
+  (cond
+    (else? (question-of (car lines))) (meaning (answer-of (car lines)) table)
+    (meaning (question-of (car lines)) table) (meaning (answer-of (car lines)) table)
+    :else (evcon (cdr lines) table)))
+
+(def cond-lines-of cdr)
+
+(defn *cond
+  [e table]
+  (evcon (cond-lines-of e) table))
+
+(defn evlis
+  [args table]
+  (cond
+    (null? args) '()
+    :else (cons (meaning (car args) table)
+                (evlis (cdr args) table))))
+
+(def function-of car)
+(def arguments-of cdr)
+
+(defn primitive?
+  [l]
+  (eq? (first l)) 'primitive)
+
+(defn non-primitive?
+  [l]
+  (eq? (first l) 'non-primitive))
