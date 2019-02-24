@@ -1,4 +1,4 @@
-(ns fun-data-stuctures.leftist-heap
+(ns fun-data-stuctures.binomial-heap
   (:require [clojure.spec.alpha :as spec]
             [clojure.spec.gen.alpha :as gen]))
 
@@ -7,67 +7,88 @@
   [rank value children]
   {:rank rank
    :value value
-   :children children})
+   :children (or children '())})
 
 (defn link
-  "Link two binomial heap nodes"
-  [t1 t2]
+  "Create a link between two binomial heap nodes"
+  [node1 node2]
   (cond
-    (<= (:value t1) (:value t2)) (create-binomial-heap-node (inc (:rank t1))
-                                                            (:value t1)
-                                                            (cons t2 (:children t1)))
-    :else (create-binomial-heap-node (inc (:rank t1))
-                                     (:value t2)
-                                     (cons t1 (:children t2)))))
+    (<= (:value node1) (:value node2)) (create-binomial-heap-node
+                                        (-> node1 :rank inc)
+                                        (:value node1)
+                                        (cons node2 (:children node1)))
+    :else (create-binomial-heap-node
+           (-> node1 :rank inc)
+           (:value node2)
+           (cons node1 (:children node2)))))
 
 (defn ins-tree
-  ""
-  [node [head & tail :as tree]]
+  "Insert a new binomial heap node into a tree"
+  [node tree]
   (cond
-    (nil? head) node
-    :else (cond
-            (< (:rank node) (:rank head)) (cons node tree)
-            :else (recur (link node head) tail))))
-
-(defn mrg
-  ""
-  [ts1 ts2]
-  (cond
-    (empty? ts1) ts2
-    (empty? ts2) ts1
-    :else (let [[h1 & t1] ts1
-                [h2 & t2] ts2]
-            (cond
-              (< (:rank h1) (:rank h2)) (mrg t1 ts2)
-              (< (:rank h2) (:rank h1)) (mrg ts1 t2)
-              :else (ins-tree (link t1 t2) (mrg t1 t2))))))
-
-(defn remove-min-tree
-  ""
-  [[head & tail]]
-  (cond
-    (nil? head) '(nil, nil)
-    (empty? tail) '(head '())
-    :else (let [[h1 & t1] (remove-min-tree tail)]
-            (cond
-              (< (:root head) (:root h1)) '(head tail)
-              :else '(h1 (cons head t1))))))
+    (empty? tree) (cons node '())
+    (< (:rank node) (-> tree first :rank)) (cons node tree)
+    :else (recur (link node (first tree)) (rest tree))))
 
 (defn insert
-  ""
-  [x ts]
-  (ins-tree (create-binomial-heap-node 0 x '()) ts))
+  "Insert a new value into a binomial heap tree"
+  [value tree]
+  (ins-tree (create-binomial-heap-node 0 value nil) tree))
+
+(defn merge-heaps
+  "Merge two binomial heaps"
+  [tree1 tree2]
+  (cond
+    (empty? tree1) tree2
+    (empty? tree2) tree1
+    (< (-> tree1 first :rank) (-> tree2 first :rank)) (cons
+                                                       (first tree1)
+                                                       (merge-heaps (rest tree1) tree2))
+    (> (-> tree1 first :rank) (-> tree2 first :rank)) (cons
+                                                       (first tree2)
+                                                       (merge-heaps tree1 (rest tree2)))
+    :else (ins-tree (link (first tree1) (first tree2))
+                          (merge-heaps (rest tree1) (rest tree2)))))
+
+(defn remove-min-tree
+  "Remove the minimum tree from a binomial heap, returning a tuple of the minimum tree and the remaining tree"
+  [[t & ts]]
+  (cond
+    (empty? ts) [t '()]
+    :else (let [[t-prime ts-prime] (remove-min-tree ts)]
+            (cond
+              (<= (:value t) (:value t-prime)) [t ts]
+              :else [t-prime (cons t ts-prime)]))))
 
 (defn find-min
-  ""
+  "Find the minimum tree in a binomial heap"
   [ts]
-  (:root (first (remove-min-tree ts))))
+  (let [[t _] (remove-min-tree ts)]
+    t))
 
 (defn delete-min
-  ""
+  "Remove the minimum tree from a binomial heap, returning the merged remaining trees"
   [ts]
-  (let [[h & t] (remove-min-tree ts)]
-    (mrg (reverse (:children h)) t)))
+  (let [[min-node ts-two] (remove-min-tree ts)]
+    (merge-heaps (-> min-node :children reverse) ts-two)))
 
-(def one (create-binomial-heap-node 0 1 '()))
-(find-min one)
+(def node-one (create-binomial-heap-node 0 1 nil))
+(def node-five (create-binomial-heap-node 0 5 nil))
+(def node-two (create-binomial-heap-node 0 2 nil))
+(def node-seven (create-binomial-heap-node 0 7 nil))
+
+(def tree-one [(link node-one node-five)
+               (link node-two node-seven)])
+
+(def tree-two [(link (create-binomial-heap-node 0 10 nil)
+                     (create-binomial-heap-node 0 100 nil))
+               (link (create-binomial-heap-node 0 20 nil)
+                     (create-binomial-heap-node 0 15 nil))])
+
+(def m (as-> (merge-heaps tree-one tree-two) tree
+         (insert -1 tree)
+         (insert -100 tree)
+         (insert -50 tree)))
+
+(-> tree-two delete-min delete-min delete-min find-min)
+(-> m delete-min delete-min delete-min delete-min find-min)
