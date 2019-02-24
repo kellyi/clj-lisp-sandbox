@@ -1,4 +1,4 @@
-(ns fun-data-stuctures.two
+(ns fun-data-structures.two
   (:require [clojure.spec.alpha :as spec]
             [clojure.spec.gen.alpha :as gen]))
 

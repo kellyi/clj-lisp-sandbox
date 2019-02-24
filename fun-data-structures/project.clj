@@ -1,4 +1,4 @@
-(defproject fun-data-stuctures "0.1.0-SNAPSHOT"
+(defproject fun-data-structures "0.1.0-SNAPSHOT"
   :description "Exercises from Purely Functional Data Structures"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}

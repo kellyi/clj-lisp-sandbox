@@ -1,4 +1,4 @@
-(ns fun-data-stuctures.core-test
+(ns fun-data-structures.core-test
   (:require [clojure.test :refer :all]
             [fun-data-stuctures.core :refer :all]))
 
