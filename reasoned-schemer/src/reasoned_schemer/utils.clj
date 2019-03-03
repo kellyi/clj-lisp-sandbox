@@ -16,3 +16,8 @@
   (or (nil? x) (empty? x)))
 
 (def nullo emptyo)
+
+(defn pairo
+  [p]
+  (fresh [a d]
+    (conso a d p)))
