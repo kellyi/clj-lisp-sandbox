@@ -1,4 +1,4 @@
-(ns reasoned-schemer.four
+(ns reasoned-schemer.five
   (:refer-clojure :exclude [==])
   (:use [clojure.core.logic]
         [reasoned-schemer.utils :as utils :only [pair?
