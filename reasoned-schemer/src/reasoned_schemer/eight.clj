@@ -25,12 +25,24 @@
    [(== 0 x) (== 1 y) (== 1 r) (== 0 c)]
    [(== 1 x) (== 1 y) (== 0 r) (== 1 c)]))
 
-(defn full-addero
+(defn full-addero-prime
   [b x y r c]
   (fresh [w xy wz]
     (half-addero x y w xy)
     (half-addero w b r wz)
     (bit-xoro xy wz c)))
+
+(defn full-addero
+  [b x y r c]
+  (conde
+   [(== 0 b) (== 0 x) (== 0 y) (== 0 r) (== 0 c)]
+   [(== 1 b) (== 0 x) (== 0 y) (== 1 r) (== 0 c)]
+   [(== 0 b) (== 1 x) (== 0 y) (== 1 r) (== 0 c)]
+   [(== 1 b) (== 1 x) (== 0 y) (== 0 r) (== 1 c)]
+   [(== 0 b) (== 0 x) (== 1 y) (== 1 r) (== 0 c)]
+   [(== 1 b) (== 0 x) (== 1 y) (== 0 r) (== 1 c)]
+   [(== 0 b) (== 1 x) (== 1 y) (== 0 r) (== 1 c)]
+   [(== 1 b) (== 1 x) (== 1 y) (== 1 r) (== 1 c)]))
 
 (defn poso
   [n]
@@ -61,7 +73,7 @@
    [(== 1 b) (== (list) m) (addero 0 n (list 1) r)]
    [(== 1 b) (== (list) n) (poso m) (addero 0 (list 1) m r)]
    [(== (list 1) n) (== (list 1) m) (fresh [a c]
-                                      (== [a c] r)
+                                      (== `(~a ~c) r)
                                       (full-addero b 1 1 a c))]
    [(== (list 1) n) (gen-addero b n m r)]
    [(== (list 1) m) (>1o n) (>1o r) (addero b (list 1) n r)]
