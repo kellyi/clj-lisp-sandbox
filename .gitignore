@@ -11,3 +11,11 @@ pom.xml.asc
 .hg/
 .rebel_readline_history
 repl-port
+*.fasl
+*.dx32fsl
+*.dx64fsl
+*.lx32fsl
+*.lx64fsl
+*.x86f
+*~
+.#*
