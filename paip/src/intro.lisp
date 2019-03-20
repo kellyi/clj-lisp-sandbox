@@ -129,11 +129,14 @@ x
          '((1 2 3) (a b c)))
 
 (defun my-exp (n pow)
-  (if (= pow 1)
-      n
-      (my-exp (* n n) (- pow 1))))
+  (cond
+    ((eq pow 0) 1)
+    ((eq pow 1) n)
+    (t (* n (my-exp n (- pow 1))))))
 
 (my-exp 3 2)
+(my-exp 10 0)
+(my-exp 2 4)
 
 (defun count-anywhere (e l)
   (cond
