@@ -8,3 +8,5 @@ Exercises from functional programming books in Clojure, Common Lisp, and Scheme.
 - [*The Reasoned Schemer*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/reasoned-schemer/)
 - [*The Little Prover*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/little-prover/)
 - [*The Little Typer*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/little-typer/)
+- [*The Seasoned Schemer*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/seasoned-schemer/)
+
