@@ -31,4 +31,5 @@
      `(,',prev-name ,@args)))
 
 (defalias null? null)
+(defalias eq? eq)
 (defconstant f nil)
