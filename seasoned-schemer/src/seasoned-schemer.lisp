@@ -46,3 +46,14 @@
          (atom? (car l2))) f)
     (else (and (eqlist? (car l1) (car l2))
                (eqlist? (cdr l1) (cdr l2))))))
+
+(defalias zero? zerop)
+
+(defun member? (a lat)
+  "Check whether a is a member of lat."
+  (labels ((yes? (l)
+             (cond
+               ((null? l) f)
+               ((eq? (car l) a) t)
+               (t (yes? (cdr l))))))
+    (yes? lat)))
