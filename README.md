@@ -11,3 +11,4 @@ Exercises from functional programming books in Clojure, Common Lisp, and Scheme.
 - [*The Seasoned Schemer*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/seasoned-schemer/)
 - [*Practical Common Lisp*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/practical-common-lisp/)
 - [*ANSI Common Lisp*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/ansi-common-lisp/)
+- [*On Lisp*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/on-lisp/)
