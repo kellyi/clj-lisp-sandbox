@@ -1,6 +1,14 @@
 (defpackage utils
   (:use :cl))
 
+(eval-when (:compile-toplevel :execute)
+  (handler-case
+      (progn
+        (sb-ext:assert-version->= 1 2 2)
+        (setq *features* (remove 'old-sbcl *features*)))
+    (error ()
+      (pushnew 'old-sbcl *features*))))
+
 (defun mkstr (&rest args)
   "Make a string from args."
   (with-output-to-string (s)
@@ -29,12 +37,13 @@
 (defun flatten (x)
   "Flatten a nested list structure."
   (labels ((rec (x acc)
-             (cond
-               ((null x) acc)
-               ((atom x) (cons x acc))
-               (t (rec
-                   (car x)
-                   (rec (cdr x) acc))))))
+             (cond ((null x) acc)
+                   #+(and sbcl (not old-sbcl))
+                   ((typep x 'sb-impl::comma) (rec (sb-impl::comma-expr x) acc))
+                   ((atom x) (cons x acc))
+                   (t (rec
+                       (car x)
+                       (rec (cdr x) acc))))))
     (rec x nil)))
 
 (defun fact (x)
