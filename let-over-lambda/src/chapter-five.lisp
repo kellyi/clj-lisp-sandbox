@@ -194,3 +194,188 @@
                  (fact (1- n) (* acc n)))))
 
 (disassemble 'nlet-tail-fact)
+
+(find 'a
+      '(((a b) (c d)) ((c d) (b a)))
+      :key #'cadadr)
+
+(find 'a
+      '(((a b) (c d)) ((c d) (b a)))
+      :key (lambda (e)
+             (second (second e))))
+
+(defmacro cxr* (x tree)
+  (if (null x)
+      tree
+      `(,(cond
+           ((eq 'a (cadr x)) 'car)
+           ((eq 'd (cadr x)) 'cdr)
+           (t (error "Not an A/D symbol.")))
+         ,(if (= 1 (car x))
+              `(cxr* ,(cddr x) ,tree)
+              `(cxr* ,(cons (- (car x) 1) (cdr x))
+                     ,tree)))))
+
+(defun eleventh (x)
+  (cxr* (1 a 10 d) x))
+
+(macroexpand
+ '(cxr* (1 a 2 d) some-list))
+
+(macroexpand-1
+ '(cxr* (1 a 2 d) some-list))
+
+(macroexpand
+ '(cxr* (2 d) some-list))
+
+(macroexpand
+ '(cxr* (1 d) some-list))
+
+(sb-cltl2:macroexpand-all
+ '(cxr* (1 a 2 d) some-list))
+
+(defvar cxr-inline-thresh 10)
+
+(defmacro! cxr (x tree)
+  (if (null x)
+      tree
+      (let ((op (cond
+                  ((eq 'a (cadr x)) 'car)
+                  ((eq 'd (cadr x)) 'cdr)
+                  (t (error "Not an A/D symbol.")))))
+        (if (and (integerp (car x))
+                 (<= 1 (car x) cxr-inline-thresh))
+            (if (= 1 (car x))
+                `(,op (cxr ,(cddr x) ,tree))
+                `(,op (cxr ,(cons (- (car x) 1) (cdr x))
+                           ,tree)))
+            `(nlet-tail
+              ,g!name ((,g!count ,(car x))
+                       (,g!val (cxr ,(cddr x) ,tree)))
+              (if (>= 0 ,g!count)
+                  ,g!val
+                  (,g!name (- ,g!count 1)
+                           (,op ,g!val))))))))
+
+(macroexpand
+ '(cxr (n d) list))
+
+(macroexpand
+ '(cxr (9 d) list))
+
+(macroexpand
+ '(cxr ('9 d) list))
+
+(defmacro def-english-list-accessors (start end)
+  (if (not (<= 1 start end))
+      (error "Bad start/end range"))
+  `(progn
+     ,@(loop for i from start to end collect
+            `(defun
+                 ,(symb
+                   (map 'string
+                        (lambda (c)
+                          (if (alpha-char-p c)
+                              (char-upcase c)
+                              #\-))
+                        (format nil "~:r" i)))
+                 (arg)
+               (cxr (1 a ,(1- i) d) arg)))))
+
+(macroexpand
+ '(def-english-list-accessors 11 40))
+
+(defun cxr-calculator (n)
+  (loop for i from 1 to n
+     sum (expt 2 i)))
+
+(cxr-calculator 4)
+
+(loop for i from 1 to 16
+     collect (cxr-calculator i))
+
+(defun cxr-symbol-p (s)
+  (if (symbolp s)
+      (let ((chars (coerce
+                    (symbol-name s)
+                    'list)))
+        (and
+         (< 6 (length chars))
+         (char= #\C (car chars))
+         (char= #\R (car (last chars)))
+         (null (remove-if
+                (lambda (c)
+                  (or (char= c #\A)
+                      (char= c #\D)))
+                (cdr (butlast chars))))))))
+
+(defun cxr-symbol-to-cxr-list (s)
+  (labels ((collect (l)
+             (if l
+                 (list*
+                  1
+                  (if (char= (car l) #\A)
+                      'A
+                      'D)
+                  (collect (cdr l))))))
+    (collect
+        (cdr
+         (butlast
+          (coerce
+           (symbol-name s)
+           'list))))))
+
+(cxr-symbol-to-cxr-list 'caddadr)
+
+(defmacro with-all-cxrs (&rest forms)
+  `(labels
+       (,@(mapcar
+           (lambda (s)
+             `(,s (l)
+               (cxr ,(cxr-symbol-to-cxr-list s)
+                1)))
+           (remove-duplicates
+            (remove-if-not
+             #'cxr-symbol-p
+             (flatten forms)))))
+     ,@forms))
+
+(with-all-cxrs #'cadadadadadr)
+
+(macroexpand
+ '(with-all-cxrs
+   (cons
+    (cadadadr list)
+    (caaaaaaaar list))))
+
+;; dispatching lambda, like oo message passing
+(defmacro! dlambda (&rest ds)
+  `(lambda (&rest ,g!args)
+     (case (car ,g!args)
+       ,@(mapcar
+          (lambda (d)
+            `(,(if (eq t (car d))
+                   t
+                   (list (car d)))
+               (apply (lambda ,@(cdr d))
+                      ,(if (eq t (car d))
+                           g!args
+                           `(cdr ,g!args)))))
+          ds))))
+
+(setf (symbol-function 'count-test)
+      (let ((count 0))
+        (dlambda
+         (reset () (setf count 0))
+         (:inc () (incf count))
+         (:dec () (incf count))
+         (:bound (lo hi)
+                 (setf count
+                       (min hi
+                            (max lo
+                                 count)))))))
+
+(count-test :inc)
+(count-test :inc)
+(count-test :dec)
+(count-test :bound -2 2)
