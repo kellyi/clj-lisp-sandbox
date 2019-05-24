@@ -100,3 +100,97 @@
 (coerce
  (unit-of-distance 1/76 old-brit-fathom)
  'float)
+
+(defun tree-leaves* (tree result)
+  "Return a new tree with alll atoms converted into result."
+  (if tree
+      (if (listp tree)
+          (cons
+           (tree-leaves* (car tree)
+                         result)
+           (tree-leaves* (cdr tree)
+                         result))
+          result)))
+
+(tree-leaves*
+ '(2 (nil t (a . b)))
+ 'leaf)
+
+(defun predicate-splitter (orderp splitp)
+  (lambda (a b)
+    (let ((s (funcall splitp a)))
+      (if (eq s (funcall splitp b))
+          (funcall orderp a b)
+          s))))
+
+(sort '(5 1 2 4 3 8 9 6 7)
+      (predicate-splitter #'< #'evenp))
+
+(defun tree-leaves** (tree test result)
+  (if tree
+      (if (listp tree)
+          (cons
+           (tree-leaves** (car tree) test result)
+           (tree-leaves** (cdr tree) test result))
+          (if (funcall test tree)
+              (funcall result tree)
+              tree))))
+
+(tree-leaves**
+ '(1 2 (3 4 (5 6)))
+ (lambda (x)
+   (and (numberp x) (evenp x)))
+ (lambda (x)
+   'even-number))
+
+(tree-leaves**
+ `(1 2 (3 4 (5 6)))
+ (lambda (x)
+   (declare (ignorable x))
+   (and (numberp x) (evenp x)))
+ (lambda (x)
+   (declare (ignorable x))
+   'even-number))
+
+(defmacro tree-leaves (tree test result)
+  `(tree-leaves**
+    ,tree
+    (lambda (x)
+      (declare (ignorable x))
+      ,test)
+    (lambda (x)
+      (declare (ignorable x))
+      ,result)))
+
+(tree-leaves
+ '(1 2 (3 4 (5 6)))
+ (and (numberp x) (evenp x))
+ 'even-number)
+
+(defmacro! nlet-tail (n letargs &rest body)
+  (let ((gs (loop for i in letargs
+               collect (gensym))))
+    `(macrolet
+         ((,n ,gs
+            `(progn
+               (psetq
+                ,@(apply #'nconc
+                         (mapcar
+                          #'list
+                          ',(mapcar #'car letargs)
+                          (list ,@gs))))
+               (go ,',g!n))))
+       (block ,g!b
+         (let ,letargs
+           (tagbody
+              ,g!n (return-from
+                    ,g!b (progn ,@body))))))))
+
+(defun nlet-tail-fact (n)
+  "Calculate the nth factorial tail recursively."
+  (nlet-tail fact ((n n) (acc 1))
+             (if (zerop n)
+                 acc
+                 (fact (1- n) (* acc n)))))
+
+(disassemble 'nlet-tail-fact)
