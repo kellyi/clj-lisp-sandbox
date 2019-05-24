@@ -1,7 +1,6 @@
 (defpackage chapter-four
   (:use :cl)
-  (:use :utils)
-  (:use :chapter-three))
+  (:use :utils))
 
 `(football-game
   (game-started-at
