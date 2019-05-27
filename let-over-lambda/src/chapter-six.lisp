@@ -355,3 +355,183 @@
    (list (injector-for-a))))
 
 (sb-cltl2:macroexpand-all *)
+
+(defun pandoriclet-get (letargs)
+  `(case sym
+     ,@(mapcar #`((,(car a1)) ,(car a1))
+               letargs)
+     (t (error
+         "Unknown pandoric get: ~a"
+         sym))))
+
+(defun pandoriclet-set (letargs)
+  `(case sym
+     ,@(mapcar #`((,(car a1))
+                  (setq ,(car a1) val))
+               letargs)
+     (t (error
+         "Unknown pandoric set: ~a ~a"
+         sym val))))
+
+(defmacro pandoriclet (letargs &rest body)
+  (let ((letargs (cons
+                  '(this)
+                  (let-binding-transform
+                   letargs))))
+    `(let (,@letargs)
+       (setq this ,@(last body))
+       ,@(butlast body)
+       (dlambda
+        (:pandoric-get (sym)
+                       ,(pandoriclet-get letargs))
+        (:pandoric-set (sym val)
+                       ,(pandoriclet-set letargs))
+        (t (&rest args)
+           (apply this args))))))
+
+(setf (symbol-function 'pantest)
+      (pandoriclet ((acc 0))
+                   (lambda (n) (incf acc n))))
+
+(pantest 3)
+
+(pantest 5)
+
+(pantest :pandoric-get 'acc)
+
+(pantest :pandoric-set 'acc 100)
+
+(pantest 3)
+
+(pantest :pandoric-get 'this)
+
+(declaim (inline get-pandoric))
+
+(defun get-pandoric (box sym)
+  (funcall box :pandoric-get sym))
+
+(defsetf get-pandoric (box sym) (val)
+  `(progn
+     (funcall ,box :pandoric-set ,sym ,val)
+     ,val))
+
+(get-pandoric #'pantest 'acc)
+
+(setf (get-pandoric #'pantest 'acc) -10)
+
+(pantest 3)
+
+(defmacro! with-pandoric (syms o!box &rest body)
+  `(symbol-macrolet
+       (,@(mapcar #`(,a1 (get-pandoric ,g!box ',a1))
+                  syms))
+     ,@body))
+
+(with-pandoric (acc) #'pantest
+               (format t "Value of acc: ~a~%" acc))
+
+(with-pandoric (acc) #'pantest
+               (setq acc 5))
+
+(pantest 1)
+
+(defun pandoric-hotpatch (box new)
+  (with-pandoric (this) box
+                 (setq this new)))
+
+(pantest 0)
+
+(pandoric-hotpatch #'pantest
+                   (let ((acc 100))
+                     (lambda (n) (decf acc n))))
+
+(pantest 3)
+
+(with-pandoric (acc) #'pantest
+               acc)
+
+(defmacro pandoric-recode (vars box new)
+  `(with-pandoric (this ,@vars) ,box
+                  (setq this ,new)))
+
+(pandoric-recode (acc) #'pantest
+                 (lambda (n)
+                   (decf acc (/ n 2))))
+
+(pantest 2)
+
+(with-pandoric (acc) #'pantest
+               acc)
+
+(defmacro plambda (largs pargs &rest body)
+  (let ((pargs (mapcar #'list pargs)))
+    `(let (this self)
+       (setq
+        this (lambda ,largs ,@body)
+        self (dlambda
+              (:pandoric-get (sym)
+                             ,(pandoriclet-get pargs))
+              (:pandoric-set (sym val)
+                             ,(pandoriclet-set pargs))
+              (t (&rest args)
+                 (apply this args)))))))
+
+(setf (symbol-function 'pantest)
+      (let ((a 0))
+        (let ((b 1))
+          (plambda (n) (a b)
+                   (incf a n)
+                   (setq b (* b n))))))
+
+(defun pantest-peek ()
+  (with-pandoric (a b) #'pantest
+                 (format t "a=~a, b=~a~%" a b)))
+
+(pantest-peek)
+
+(defun make-stats-counter (&key
+                             (count 0)
+                             (sum 0)
+                             (sum-of-squares 0))
+  (plambda (n) (sum count sum-of-squares)
+           (incf sum-of-squares (expt n 2))
+           (incf sum n)
+           (incf count)))
+
+(defmacro defpan (name args &rest body)
+  `(defun ,name (self)
+     ,(if args
+          `(with-pandoric ,args self
+                          ,@body)
+          `(progn ,@body))))
+
+(defpan stats-counter-mean (sum count)
+  (/ sum count))
+
+(defpan stats-counter-variance (sum-of-squares sum count)
+  (if (< count 2)
+      0
+      (/ (- sum-of-squares
+            (* sum
+               (stats-counter-mean self)))
+         (1- count))))
+
+(defpan stats-counter-stddev ()
+  (sqrt (stats-counter-variance self)))
+
+(defvar pandoric-eval-tunnel)
+
+(defmacro pandoric-eval (vars expr)
+  `(let ((pandoric-eval-tunnel
+          (plambda () ,vars t)))
+     (eval `(with-pandoric
+                ,',vars pandoric-eval-tunnel
+                ,,expr))))
+
+(let ((x 1))
+  (pandoric-eval (x)
+                 '(1+ x)))
+
+(let ((x 1))
+  (pandoric-eval (x)
+                 '(incf x)))
