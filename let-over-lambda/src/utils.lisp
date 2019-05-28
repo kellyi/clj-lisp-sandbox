@@ -97,3 +97,72 @@
     `(defmacro/g! ,name ,args
        `(let ,(mapcar #'list (list ,@gs) (list ,@os))
           ,(progn ,@body)))))
+
+(defmacro! nlet-tail (n letargs &rest body)
+  (let ((gs (loop for i in letargs
+               collect (gensym))))
+    `(macrolet
+         ((,n ,gs
+            `(progn
+               (psetq
+                ,@(apply #'nconc
+                         (mapcar
+                          #'list
+                          ',(mapcar #'car letargs)
+                          (list ,@gs))))
+               (go ,',g!n))))
+       (block ,g!b
+         (let ,letargs
+           (tagbody
+              ,g!n (return-from
+                    ,g!b (progn ,@body))))))))
+
+(defmacro! dlambda (&rest ds)
+  `(lambda (&rest ,g!args)
+     (case (car ,g!args)
+       ,@(mapcar
+          (lambda (d)
+            `(,(if (eq t (car d))
+                   t
+                   (list (car d)))
+               (apply (lambda ,@(cdr d))
+                      ,(if (eq t (car d))
+                           g!args
+                           `(cdr ,g!args)))))
+          ds))))
+
+(defmacro alambda (parms &body body)
+  `(labels ((self ,parms ,@body))
+     #'self))
+
+(defun |#`-reader| (stream sub-char numarg)
+  (declare (ignore sub-char))
+  (unless numarg (setq numarg 1))
+  `(lambda ,(loop for i from 1 to numarg
+               collect (symb 'a i))
+     ,(funcall
+       (get-macro-character #\`) stream nil)))
+
+(set-dispatch-macro-character
+ #\# #\` #'|#`-reader|)
+
+(defmacro alet (letargs &rest body)
+  `(let ((this) ,@letargs)
+     (setq this ,@(last body))
+     ,@(butlast body)
+     (lambda (&rest params)
+       (apply this params))))
+
+(defmacro dis (args &rest body)
+  `(disassemble
+    (compile nil
+             (lambda ,(mapcar (lambda (a)
+                                (if (consp a)
+                                    (cadr a)
+                                    a))
+                              args)
+               (declare
+                ,@(mapcar
+                   #`(type ,(car a1) ,(cadr a1))
+                   (remove-if-not #'consp args)))
+               ,@body))))
