@@ -138,3 +138,131 @@
 (compile 'fformat-benchmark)
 
 (fformat-benchmark 10000000)
+
+(defmacro dis (args &rest body)
+  `(disassemble
+    (compile nil
+             (lambda ,(mapcar (lambda (a)
+                                (if (consp a)
+                                    (cadr a)
+                                    a))
+                              args)
+               (declare
+                ,@(mapcar
+                   #`(type ,(car a1) ,(cadr a1))
+                   (remove-if-not #'consp args)))
+               ,@body))))
+
+(macroexpand
+ '(dis (a b) (+ a b)))
+
+(macroexpand
+ '(dis ((fixnum a) (integer b))
+   (+ a b)))
+
+(dis (a b)
+     (+ a b))
+
+(dis (a b c)
+     (+ a b c))
+
+(dis ((fixnum a) b)
+     (+ a b))
+
+(dis ((fuxnum a) (fixnum b))
+     (+ a b))
+
+(dis ((fixnum a) (fixnum b))
+     #f
+     (+ a b))
+
+(dis ((fixnum a) (fixnum b))
+     #f
+     (the fixnum (+ a b)))
+
+(defmacro! pointer-& (obj)
+  `(lambda (&optional (,g!set ',g!temp))
+     (if (eq ,g!set ',g!temp)
+         ,obj
+         (setf ,obj ,g!set))))
+
+(defun pointer-* (addr)
+  (funcall addr))
+
+(defsetf pointer-* (addr) (val)
+  `(funcall ,addr ,val))
+
+(defsetf pointer-& (addr) (val)
+  `(setf (pointer-* ,addr) ,val))
+
+(let ((x 0))
+  (pointer-& (pointer-& x)))
+
+(defvar temp-pointer *)
+
+(pointer-* temp-pointer)
+
+(pointer-* *)
+
+(setf (pointer-* (pointer-* temp-pointer)) 5)
+
+(pointer-* (pointer-* temp-pointer))
+
+(pointer-& temp-pointer)
+
+(pointer-* (pointer-* (pointer-* *)))
+
+(setf (pointer-* (pointer-* (pointer-* **))) 9)
+
+(pointer-* (pointer-* temp-pointer))
+
+(dis (arr ind)
+     (aref arr ind))
+
+(dis (((simple-array fixum) arr)
+      (fixnum ind))
+     (aref arr ind))
+
+(defmacro! with-fast-stack ((sym &key
+                                 (type 'fixnum)
+                                 (size 1000)
+                                 (safe-zone 100))
+                            &rest body)
+  `(let ((,g!index ,safe-zone)
+         (,g!mem (make-array ,(+ size (* 2 safe-zone))
+                             :element-type ',type)))
+     (declare (type (simple-array ,type) ,g!mem)
+              (type fixnum ,g!index))
+     (macrolet
+         ((,(symb 'fast-push- sym) (val)
+            `(locally #f
+               (setf (aref ,',g!mem ,',g!index) ,val)
+               (incf ,',g!index)))
+          (,(symb 'fast-pop- sym) ()
+            `(locally #f
+               (decf ,',g!index)
+               (aref ,',g!mem ,',g!index)))
+          (,(symb 'check-stack- sym) ()
+            `(progn
+               (if (<= ,',g!index ,,safe-zone)
+                   (error "Stack underflow: ~a"
+                          ',',sym))
+               (if (<= ,,(- size safe-zone)
+                       ,',g!index)
+                   (error "Stack overflow: ~a"
+                          ',',sym)))))
+       ,@body)))
+
+(dis ((fixnum a))
+     (with-fast-stack (input :size 2000)
+       (loop for i from 1 to 1000000 do
+            (fast-push-input a))))
+
+(compile nil
+         '(lambda (n)
+           (declare (type fixnum a))
+           (with-fast-stack (input :size 2000)
+             (loop for i from 1 to 1000000 do
+                  (fast-push-input a)))))
+
+;; (funcall * 31337) -> will break slime
