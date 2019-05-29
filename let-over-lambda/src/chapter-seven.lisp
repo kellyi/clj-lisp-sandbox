@@ -396,3 +396,229 @@
             tp))
      (loop while tp
         do (cons-pool-free (pop tp)))))
+
+(defvar bad-3-sn
+  '((0 1) (0 2) (1 2)))
+
+(defvar good-3-sn
+  '((0 2) (0 1) (1 2)))
+
+(defvar tracing-interpret-sn nil)
+
+(defun interpret-sn (data sn)
+  (let ((step 0) (swaps 0))
+    (dolist (i sn)
+      (if tracing-interpret-sn
+          (format t "Step ~a: ~a~%" step data))
+      (if (> #1=(nth (car i) data)
+             #2=(nth (cadr i) data))
+          (progn
+            (rotatef #1# #2#)
+            (incf swaps)))
+      (incf step))
+    (values swaps data)))
+
+(let ((tracing-interpret-sn t))
+  (interpret-sn '(1 2 3) bad-3-sn))
+
+(let ((tracing-interpret-sn t))
+  (interpret-sn '(1 2 3) good-3-sn))
+
+(let ((tracing-interpret-sn t))
+  (interpret-sn '(3 1 2) bad-3-sn))
+
+(let ((tracing-interpret-sn t))
+  (interpret-sn '(3 1 2) good-3-sn))
+
+(let ((tracing-interpret-sn t))
+  (interpret-sn '(3 2 1) bad-3-sn))
+
+(let ((tracing-interpret-sn t))
+  (interpret-sn '(3 2 1) good-3-sn))
+
+(defun all-sn-perms (n)
+  (let (perms curr)
+    (funcall
+     (alambda (left)
+       (if left
+           (loop for i from 0 to (1- (length left)) do
+                (push (nth i left) curr)
+                (self (append (subseq left 0 i)
+                              (subseq left (1+ i))))
+                (pop curr))
+           (push curr perms)))
+     (loop for i from 1 to n collect i))
+    perms))
+
+(all-sn-perms 3)
+
+(defun average-swaps-calc (n sn)
+  (/ (loop for i in (all-sn-perms n) sum
+          (interpret-sn (copy-list i) sn))
+     (fact n)))
+
+(average-swaps-calc 3 bad-3-sn)
+
+(average-swaps-calc 3 good-3-sn)
+
+(defun build-batched-sn (n)
+  (let* (network
+         (tee (ceiling (log n 2)))
+         (p (ash 1 (- tee 1))))
+    (loop while (> p 0) do
+         (let ((q (ash 1 (- tee 1)))
+               (r 0)
+               (d p))
+           (loop while (> d 0) do
+                (loop for i from 0 to (- n d 1) do
+                     (if (= (logand i p) r)
+                         (push (list i (+ i d))
+                               network)))
+                (setf d (- q p)
+                      q (ash q -1)
+                      r p)))
+         (setf p (ash p -1)))
+    (nreverse network)))
+
+(build-batched-sn 3)
+
+(build-batched-sn 7)
+
+(defun prune-sn-for-median (elems network)
+  (let ((mid (floor elems 2)))
+    (nreverse
+     (if (evenp elems)
+         (prune-sn-for-median-aux
+          (reverse network)
+          (list (1- mid) mid))
+         (prune-sn-for-median-aux
+          (reverse network)
+          (list mid))))))
+
+(defun prune-sn-for-median-aux (network contam)
+  (if network
+      (if (intersection (car network) contam)
+          (cons (car network)
+                (prune-sn-for-median-aux
+                 (cdr network)
+                 (remove-duplicates
+                  (append (car network) contam))))
+          (prune-sn-for-median-aux
+           (cdr network) contam))))
+
+(defun prune-sn-for-median-calc (n)
+  (loop for i from 2 to n collect
+       (let* ((sn (build-batched-sn i))
+               (snp (prune-sn-for-median i sn)))
+            (list i
+                  (length sn)
+                  (length snp)))))
+
+(interpret-sn
+ '(4 2 3 7 6 1 5)
+ (prune-sn-for-median
+  7 (build-batched-sn 7)))
+
+(prune-sn-for-median-calc 49)
+
+(defun sn-to-lambda-form* (sn)
+  `(lambda (arr)
+     #f
+     (declare (type (simple-array fixnum) arr))
+     ,@(mapcar
+        #`(if (> #1=(aref arr ,(car a1))
+                 #2=(aref arr ,(cadr a1)))
+              (rotatef #1# #2#))
+        sn)
+     arr))
+
+(eval
+ (sn-to-lambda-form*
+  (build-batched-sn 3)))
+
+(compile nil *)
+
+(disassemble *)
+
+(disassemble
+ (compile nil
+          (sn-to-lambda-form*
+           (build-batched-sn 3))))
+
+(defun sn-to-lambda-form (sn)
+  `(lambda (arr)
+     #f
+     (declare (type (simple-array fixnum) arr))
+     ,@(mapcar
+        #`(let ((a #1=(aref arr ,(car a1)))
+                (b #2=(aref arr ,(cadr a1))))
+            (if (> a b)
+                (setf #1# b
+                      #2# a)))
+        sn)
+     arr))
+
+(defmacro! sortf (comparator &rest places)
+  (if places
+      `(tagbody
+          ,@(mapcar
+             #`(let ((,g!a #1=,(nth (car a1) places))
+                     (,g!b #2=,(nth (cadr a1) places)))
+                 (if (,comparator ,g!b ,g!a)
+                     (setf #1# ,g!b
+                           #2# ,g!a)))
+             (build-batched-sn (length places))))))
+
+(macroexpand
+ '(sortf < a b c))
+
+(let ((a -3) (b 2))
+  (sortf (lambda (a b) (< (abs a) (abs b)))
+         a b)
+  (list a b))
+
+(let ((a 2) (b '(4)) (c #(3 1)))
+  (sortf < a (car b) (aref c 0) (aref c 1))
+  (format t "a=~a b=~a c=~a~%" a b c))
+
+(defmacro sort-benchmark-time ()
+  `(progn
+     (setq sorter (compile nil sorter))
+     (let ((arr (make-array
+                 n :element-type 'fixnum)))
+       (time
+        (loop for i from 1 to iters do
+             (loop for j from 0 to (1- n) do
+                  (setf (aref arr j) (random n)))
+             (funcall sorter arr))))))
+
+(defun do-sort-benchmark (n iters)
+  (let ((rs (make-random-state *random-state*)))
+    (format t "CL sort:~%")
+    (let ((sorter
+           '(lambda (arr)
+             #f
+             (declare (type (simple-array fixnum)
+                       arr))
+             (sort arr #'<))))
+      (sort-benchmark-time))
+    (setf *random-state* rs)
+    (format t "sortf:~%")
+    (let ((sorter
+           `(lambda (arr)
+              #f
+              (declare (type (simple-array fixnum)
+                             arr))
+              (sortf <
+                     ,@(loop for i from 0 to (1- n)
+                          collect `(aref arr ,i)))
+              arr)))
+      (sort-benchmark-time))))
+
+(compile 'do-sort-benchmark)
+
+(do-sort-benchmark 2 1000000)
+
+(do-sort-benchmark 25 1000000)
+
+(do-sort-benchmark 49 1000000)
