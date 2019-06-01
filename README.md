@@ -2,7 +2,6 @@
 
 Exercises from functional programming books in Clojure, Common Lisp, and Scheme.
 
-- [*Purely Functional Data Structures*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/fun-data-structures/)
 - [*Paradigms of Artificial Intelligence Programming*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/paip/)
 - [*The Little Schemer*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/little-schemer/)
 - [*The Reasoned Schemer*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/reasoned-schemer/)
@@ -13,3 +12,4 @@ Exercises from functional programming books in Clojure, Common Lisp, and Scheme.
 - [*ANSI Common Lisp*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/ansi-common-lisp/)
 - [*On Lisp*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/on-lisp/)
 - [*Let Over Lambda*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/let-over-lambda/)
+- *Purely Functional Data Structures* in [Clojure](https://github.com/kellyi/clj-lisp-sandbox/tree/master/fun-data-structures-clj/) and [Common Lisp](https://github.com/kellyi/clj-lisp-sandbox/tree/master/fun-data-structures-lisp/)
