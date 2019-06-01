@@ -11,9 +11,9 @@
   "Is a value present in a binary search tree?"
   (if (null bst)
       nil
-      (let ((left (slot-value bst 'left))
-            (right (slot-value bst 'right))
-            (val (slot-value bst 'val)))
+      (let ((left (bst-node-left bst))
+            (right (bst-node-right bst))
+            (val (bst-node-val bst)))
         (cond
           ((eq value val) value)
           ((< value val) (bst-member-p value left))
@@ -23,11 +23,11 @@
   "Insert a new value into a binary search tree."
   (if (null bst)
       (make-bst-node :val value)
-      (let ((left (slot-value bst 'left))
-            (right (slot-value bst 'right))
-            (val (slot-value bst 'val)))
+      (let ((left (bst-node-left bst))
+            (right (bst-node-right bst))
+            (val (bst-node-val bst)))
         (cond
-          ((eq value val) bst)
+          ((eql value val) bst)
           ((< value val) (make-bst-node :left (insert value left)
                                         :val val
                                         :right right))
