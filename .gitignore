@@ -19,3 +19,4 @@ repl-port
 *.x86f
 *~
 .#*
+.DS_Store
