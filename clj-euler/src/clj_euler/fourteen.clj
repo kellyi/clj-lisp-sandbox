@@ -42,6 +42,6 @@
                 second
                 (map (fn [x]
                        [x (find-collatz-sequence-count x)])
-                     (range 1 n))))
+                     (range 1 n)))))
 
 (solve 1000000)
