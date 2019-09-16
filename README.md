@@ -13,3 +13,4 @@ Exercises from functional programming books in Clojure, Common Lisp, and Scheme.
 - [*On Lisp*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/on-lisp/)
 - [*Let Over Lambda*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/let-over-lambda/)
 - *Purely Functional Data Structures* in [Clojure](https://github.com/kellyi/clj-lisp-sandbox/tree/master/fun-data-structures-clj/) and [Common Lisp](https://github.com/kellyi/clj-lisp-sandbox/tree/master/fun-data-structures-lisp/)
+- [*How to Design Programs*](https://github.com/kellyi/clj-lisp-sandbox/tree/master/htdp/) in Racket
