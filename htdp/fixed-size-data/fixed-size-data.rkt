@@ -68,10 +68,12 @@
 
 (string-last "hello")
 
+(define price-sensitivity (/ 15.0 0.1))
+
 (define (attendees ticket-price)
   (- 120
      (* (- ticket-price 5.0)
-        (/ 15.0 0.1))))
+        price-sensitivity)))
 
 (define (revenue ticket-price)
   (* ticket-price (attendees ticket-price)))
@@ -100,14 +102,69 @@
 
 (find-max-profit 1 0 0)
 
+(require 2htdp/batch-io)
 
+;; (write-file "sample.dat" "212")
+;; (read-file "sample.dat")
 
+;; (write-file 'stdout "212\n")
 
+(define (C f)
+  (* 5/9 (- f 32)))
 
+(C 32)
+(C 212)
+(C -40)
 
+(define (convert in out)
+  (write-file out
+              (string-append
+               (number->string
+                (C
+                 (string->number
+                  (read-file in))))
+               "\n")))
 
+;; (write-file "sample.dat" "212")
+;; (convert "sample.dat" 'stdout)
+;; (convert "sample.dat" "out.dat")
+;; (read-file "out.dat")
 
+(define (letter fst lst signature-name)
+  (string-append
+   (opening fst)
+   "\n\n"
+   (body fst lst)
+   "\n\n"
+   (closing signature-name)))
 
+(define (opening fst)
+  (string-append "Dear " fst ","))
 
+(define (body fst lst)
+  (string-append
+   "We have discovered that all people with the\n"
+   "last name "
+   lst
+   " have won our lottery. So, \n"
+   fst
+   ", hurry and pick up your prize."))
 
+(define (closing signature-name)
+  (string-append
+   "Sincerely,\n\n"
+   signature-name
+   "\n"))
 
+(letter "Kelly" "Innes" "Kelly Innes")
+
+(define (write-letter in-fst in-lst in-signature out)
+  (write-file out
+              (letter (read-file in-fst)
+                      (read-file in-lst)
+                      (read-file in-signature))))
+
+(write-file "first-name.dat" "John")
+(write-file "last-name.dat" "Smith")
+(write-file "signature.dat" "John Smith")
+(write-letter "first-name.dat" "last-name.dat" "signature.dat" 'stdout)
