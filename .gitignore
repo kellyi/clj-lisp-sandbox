@@ -22,3 +22,4 @@ repl-port
 .DS_Store
 *.input.txt
 *.dat
+scribblings/
